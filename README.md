@@ -5,7 +5,7 @@
 实验流程：
 1. 统一格式：读入后全部转为灰度图（float32, 范围 [0,1]）
 2. 添加高斯噪声：σ=15、25、50（按 0..255 灰度尺度定义）
-3. Bitonic Filter：输入 noisy image，输出 denoised image（窗口秩统计，默认取中位数）
+3. Bitonic Filter：按论文定义进行 rank-opening/closing，并用平滑残差加权融合（参数包含 `centile`、`m`、高斯平滑 `gsigma/galpha`）
 4. 评价指标：PSNR、SSIM（参考原始灰度图）
 5. 保存图像：noisy / denoise / residual（residual = noisy - denoised，可视化为 0.5 + residual/2）
 6. 参数实验：对多个 `ksize`（默认 3,5,7）× 多个 σ 组合批量跑并汇总 CSV
@@ -27,6 +27,16 @@ python run_exp1_batch.py --images_dir exp1-images --out outputs
 ```bash
 python run_exp1_batch.py --ksizes 3 5 7 9
 ```
+
+## 参数敏感性测试：固定噪声强度，只改变窗口大小
+
+例如固定 σ=25，只扫描不同 `ksize`：
+
+```bash
+python run_exp1_batch.py --sigma 25 --ksizes 3 5 7 9 --centile 5 --m 3 --gsigma 1.0 --galpha 1.0
+```
+
+（等价写法：`--sigmas 25` 只给一个值也可以。）
 
 ## 输出
 
