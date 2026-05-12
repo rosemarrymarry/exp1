@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.pdb
+*.egg-info/
+.dist/
+.build/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Experiment outputs (generated)
+outputs/
+
+# Input images (provide via your own dataset; avoid committing copyrighted samples)
+exp1-images/
+!exp1-images/.gitkeep
+
+# Local temp
+*.log
