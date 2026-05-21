@@ -1,29 +1,21 @@
-# Python
+# Python cache
 __pycache__/
-*.py[cod]
-*.pyd
+*.pyc
 *.pyo
-*.pdb
-*.egg-info/
-.dist/
-.build/
-.venv/
-venv/
+*.pyd
 
 # Jupyter
 .ipynb_checkpoints/
 
-# OS / Editor
+# OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
 
-# Experiment outputs (generated)
+# Experiment outputs (do not commit)
 outputs/
+outputs_*/
 
-# Input images (provide via your own dataset; avoid committing copyrighted samples)
+# (Recommended) Input images may have copyright/license issues.
+# If you plan to publish the repo, keep images out of git.
 exp1-images/
-!exp1-images/.gitkeep
-
-# Local temp
-*.log

@@ -38,6 +38,38 @@ python run_exp1_batch.py --sigma 25 --ksizes 3 5 7 9 --centile 5 --m 3 --gsigma 
 
 （等价写法：`--sigmas 25` 只给一个值也可以。）
 
+## 参数敏感性实验（多参数网格）
+
+如果你要证明“Bitonic 滤波的不同参数会显著影响去噪效果”，建议用网格扫描一次性生成一个汇总表，再用分析脚本输出主效应与最优/最差差值。
+
+### 1) 运行网格扫描
+
+固定噪声强度（例如 σ=25），对 `ksize/centile/m/gauss_sigma/gauss_alpha` 做组合扫描：
+
+```bash
+python run_exp1_sensitivity.py --sigma 25 \
+  --ksizes 3 5 7 \
+  --centiles 1 5 10 \
+  --ms 1.5 3 6 \
+  --gsigmas 0 1 2 \
+  --galphas 1.0 2.0 \
+  --out outputs_sensitivity
+```
+
+默认只输出指标汇总（更省空间）。如需保存每组参数的去噪图，额外加 `--save_images`（注意会产生大量文件）。
+
+### 2) 分析结果（给出“参数影响”的证据）
+
+```bash
+python analyze_sensitivity.py --csv outputs_sensitivity/summary.csv --out outputs_sensitivity --score psnr_denoised
+```
+
+输出：
+
+- `outputs_sensitivity/main_effects.csv`：每个参数各取值的均值/方差（主效应）
+- `outputs_sensitivity/proof_param_impacts_psnr_denoised.csv`：每个参数“不同取值导致的均值范围”与最优/最差取值
+- `outputs_sensitivity/delta_best_worst_by_image_psnr_denoised.csv`：每张图在本次网格中“最优-最差”的差值
+
 ## 输出
 
 - `outputs/grayscale/<name>_gray.png`
