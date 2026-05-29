@@ -144,3 +144,49 @@ git push -u origin main
 
 - `outputs/summary.csv` 可直接在 Kaggle 页面下载
 - 单张图片的各参数输出也都在 `outputs/<name>/.../` 下
+
+## Exp2 — 参数敏感性实验
+
+目的：系统评估 Bitonic 滤波器中各个超参数对去噪性能的影响（主效应、最优/最差差值、每张图的敏感性）。
+
+运行示例：在固定噪声强度下对 `ksize/centile/m/gauss_sigma/gauss_alpha` 做网格扫描并输出汇总：
+
+```bash
+python run_exp1_sensitivity.py --images_dir exp1-images --out outputs_sensitivity --sigma 25 \
+  --ksizes 3 5 7 --centiles 1 5 10 --ms 1.5 3 6 --gsigmas 0 1 2 --galphas 1.0 2.0
+```
+
+后处理（分析与可视化）：
+
+```bash
+python analyze_sensitivity.py --csv outputs_sensitivity/summary.csv --out outputs_sensitivity --score psnr_denoised
+python plot_sensitivity.py --csv outputs_sensitivity/summary.csv --out outputs_sensitivity --metric psnr_denoised
+```
+
+主要输出：
+- `outputs_sensitivity/summary.csv`：参数网格的逐条结果
+- `outputs_sensitivity/main_effects.csv`、`proof_param_impacts_*.csv`：主效应与参数影响证明表
+- `outputs_sensitivity/figures/`：每个参数的效果图（PNG）
+
+建议：在网格搜索时如不需要保存每组去噪图，可省略 `--save_images` 以节省空间。
+
+## Exp3 — 图像块大小影响实验
+
+目的：研究将图像切为非重叠块（block-wise）独立去噪时，块大小对 PSNR/SSIM 的影响（衡量边界伪影与上下文缺失的影响）。
+
+运行示例：对多个非重叠块大小运行（示例：16/32/64/128）：
+
+```bash
+python run_exp1_blocksize.py --images_dir exp1-images --out outputs_blocksize --sigma 25 \
+  --block_sizes 16 32 64 128 --ksize 5 --centile 5 --m 3 --gsigma 1.0 --galpha 1.0
+```
+
+主要输出：
+- `outputs_blocksize/summary.csv`：每张图、每种 block_size 的 PSNR/SSIM 明细（行数≈N_images × N_block_sizes）
+- `outputs_blocksize/blocksize_summary.csv`：按 block_size 聚合的均值/标准差汇总
+
+建议的验证流程：先用一组小样本快速跑通，再在大数据集（如 DIV2K）上跑完整实验；记录每张图的多次噪声重复以提高统计稳健性。
+
+---
+
+以上两个实验均与主流程共用核心实现（`bitonic_filter.py`）。若需要把新的实验脚本、结果文件或分析图加入仓库，请在提交前排除大体积输出文件（`outputs/`）或者把结果另存为独立数据集/Artifact。
