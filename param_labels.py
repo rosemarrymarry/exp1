@@ -44,11 +44,43 @@ def run_grid_search(
     out_dir = ensure_dir(out_dir)
     details_dir = ensure_dir(out_dir / "details")
 
+    # Prepare best labels CSV (appendable) and fieldnames
+    best_csv = out_dir / "best_params_labels.csv"
+    fieldnames = [
+        "image",
+        "sigma",
+        "ksize",
+        "centile",
+        "gauss_sigma",
+        "m",
+        "gauss_alpha",
+        "psnr_mean",
+        "psnr_std",
+        "ssim_mean",
+        "ssim_std",
+    ]
+    if not best_csv.exists():
+        with open(best_csv, "w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+
     image_paths = all_image_paths(images_dir)
     if not image_paths:
         raise FileNotFoundError(f"No images found in {images_dir}")
 
     summary_rows = []
+
+    # compute total runs for progress reporting
+    total_runs = (
+        len(image_paths)
+        * len(sigmas)
+        * len(ksizes)
+        * len(centiles)
+        * len(gsigmas)
+        * max(1, repeats)
+    )
+    global_idx = 0
+    width = len(str(total_runs))
 
     for img_path in image_paths:
         name = img_path.stem
@@ -56,6 +88,12 @@ def run_grid_search(
 
         for sigma in sigmas:
             combos_results = []
+            # prepare details file for this (image,sigma)
+            details_file = details_dir / f"{name}_sigma{int(sigma)}_results.csv"
+            if not details_file.exists():
+                with open(details_file, "w", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
             for ksize in ksizes:
                 for cent in centiles:
                     for gsig in gsigmas:
@@ -79,6 +117,19 @@ def run_grid_search(
                             psnr_list.append(ps)
                             ssim_list.append(ss)
 
+                            # progress counter and console output
+                            global_idx += 1
+                            idx_str = str(global_idx).zfill(width)
+                            print(f"[{idx_str}/{total_runs}] {name} ksize={ksize} cent={cent} gsig={gsig} r={r} -> PSNR={ps:.3f} SSIM={ss:.4f}")
+
+                            # flush to ensure Kaggle shows live output
+                            try:
+                                import sys
+
+                                sys.stdout.flush()
+                            except Exception:
+                                pass
+
                         row = {
                             "image": name,
                             "sigma": float(sigma),
@@ -94,13 +145,10 @@ def run_grid_search(
                         }
                         combos_results.append(row)
 
-            # Save per-(image,sigma) full results
-            details_file = details_dir / f"{name}_sigma{int(sigma)}_results.csv"
-            with open(details_file, "w", newline="") as f:
-                writer = csv.DictWriter(f, fieldnames=list(combos_results[0].keys()))
-                writer.writeheader()
-                for r in combos_results:
-                    writer.writerow(r)
+                        # append this combo result immediately to details CSV
+                        with open(details_file, "a", newline="") as f:
+                            writer = csv.DictWriter(f, fieldnames=fieldnames)
+                            writer.writerow(row)
 
             # Choose best by metric
             if metric.lower() == "psnr":
@@ -110,16 +158,12 @@ def run_grid_search(
             else:
                 raise ValueError("metric must be 'psnr' or 'ssim'")
 
-            summary_rows.append(best)
+            # append best to global best CSV immediately
+            with open(best_csv, "a", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writerow(best)
 
-    # Write full summary of best per (image,sigma)
-    best_csv = out_dir / "best_params_labels.csv"
-    if summary_rows:
-        with open(best_csv, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(summary_rows[0].keys()))
-            writer.writeheader()
-            for r in summary_rows:
-                writer.writerow(r)
+            summary_rows.append(best)
 
     return best_csv
 
